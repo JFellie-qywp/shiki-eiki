@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
 const { PrismaClient } = require('@prisma/client');
 const play = require('play-dl');
@@ -7,7 +7,7 @@ const express = require('express');
 require('dotenv').config();
 
 // ==========================================
-// KHỞI TẠO WEB SERVER (PORT BINDING CHO RENDER)
+// KHỞI TẠO WEB SERVER
 // ==========================================
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,55 +35,87 @@ const client = new Client({
 });
 
 // Khởi tạo Spotify token cho play-dl
-play.setToken({
-  spotify: {
-    client_id: process.env.SPOTIFY_CLIENT_ID,
-    client_secret: process.env.SPOTIFY_CLIENT_SECRET,
-    refresh_token: '',
-    market: 'VN'
+(async () => {
+  try {
+    await play.setToken({
+      spotify: {
+        client_id: process.env.SPOTIFY_CLIENT_ID,
+        client_secret: process.env.SPOTIFY_CLIENT_SECRET,
+        market: 'VN'
+      }
+    });
+  } catch (err) {
+    console.error('Lỗi khởi tạo Spotify Token:', err);
   }
-});
+})();
 
 const musicQueues = new Map();
 const voiceConnections = new Map();
 
-client.once('ready', () => {
+// ==========================================
+// DANH SÁCH SLASH COMMANDS ĐỂ ĐĂNG KÝ VỚI DISCORD
+// ==========================================
+const commands = [
+  new SlashCommandBuilder().setName('join').setDescription('Đưa bot vào kênh thoại để dùng TTS'),
+  new SlashCommandBuilder().setName('leave').setDescription('Rời khỏi kênh thoại'),
+  new SlashCommandBuilder().setName('play').setDescription('Phát nhạc từ Spotify hoặc YouTube')
+    .addStringOption(opt => opt.setName('query').setDescription('Tên bài hát hoặc URL').setRequired(true)),
+  new SlashCommandBuilder().setName('stop').setDescription('Dừng nhạc và rời kênh thoại'),
+  new SlashCommandBuilder().setName('ping').setDescription('Kiểm tra độ trễ của bot'),
+  new SlashCommandBuilder().setName('balance').setDescription('Xem tài sản cá nhân'),
+  new SlashCommandBuilder().setName('daily').setDescription('Nhận bổng lộc hàng ngày'),
+  new SlashCommandBuilder().setName('deposit').setDescription('Gửi tiền vào ngân hàng')
+    .addStringOption(opt => opt.setName('amount').setDescription('Số tiền hoặc "all"').setRequired(true)),
+  new SlashCommandBuilder().setName('withdraw').setDescription('Rút tiền từ ngân hàng')
+    .addStringOption(opt => opt.setName('amount').setDescription('Số tiền hoặc "all"').setRequired(true)),
+  new SlashCommandBuilder().setName('coinflip').setDescription('Trò chơi lật xu')
+    .addStringOption(opt => opt.setName('choice').setDescription('Chọn heads hoặc tails').setRequired(true).addChoices(
+      { name: 'Ngửa (Heads)', value: 'heads' },
+      { name: 'Sấp (Tails)', value: 'tails' }
+    ))
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Số tiền cược').setRequired(true)),
+  new SlashCommandBuilder().setName('slots').setDescription('Trò chơi may rủi Slots')
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Số tiền cược').setRequired(true)),
+  new SlashCommandBuilder().setName('clear').setDescription('Quét dọn tin nhắn rác')
+    .addIntegerOption(opt => opt.setName('amount').setDescription('Số lượng tin nhắn (1-100)').setRequired(true)),
+  new SlashCommandBuilder().setName('ban').setDescription('Cấm thành viên')
+    .addUserOption(opt => opt.setName('target').setDescription('Thành viên bị cấm').setRequired(true))
+    .addStringOption(opt => opt.setName('reason').setDescription('Lý do cấm')),
+  new SlashCommandBuilder().setName('kick').setDescription('Trục xuất thành viên')
+    .addUserOption(opt => opt.setName('target').setDescription('Thành viên bị trục xuất').setRequired(true))
+    .addStringOption(opt => opt.setName('reason').setDescription('Lý do trục xuất')),
+  new SlashCommandBuilder().setName('timeout').setDescription('Cấm ngôn tạm thời')
+    .addUserOption(opt => opt.setName('target').setDescription('Thành viên').setRequired(true))
+    .addIntegerOption(opt => opt.setName('duration').setDescription('Thời gian (phút)').setRequired(true)),
+].map(command => command.toJSON());
+
+// TỰ ĐỘNG ĐĂNG KÝ COMMANDS KHI BOT READY
+client.once('ready', async () => {
   console.log(`⚖️  Shiki-Eiki Yamaxanadu đã sẵn sàng thực thi công lý dưới tên: ${client.user.tag}`);
+
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+  try {
+    console.log('🔄 Đang đồng bộ và đăng ký Slash Commands với Discord...');
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands }
+    );
+    console.log('✅ Đã đăng ký thành công toàn bộ Slash Commands!');
+  } catch (error) {
+    console.error('❌ Lỗi khi đăng ký Slash Commands:', error);
+  }
 });
 
 // ==========================================
-// 1. AUTO-RESPONDER & TTS & AUTOMOD
+// 1. AUTO-RESPONDER & TTS
 // ==========================================
 client.on('messageCreate', async (message) => {
-  // Bỏ qua tin nhắn từ Bot hoặc tin nhắn riêng (DM)
   if (message.author.bot || !message.guild) return;
 
   let config = await prisma.guildConfig.findUnique({ where: { guildId: 'default' } });
   const currentPrefix = config?.prefix || '!';
 
-  // --- AUTOMODERATION (ĐÃ TẮT THEO YÊU CẦU) ---
-  /*
-  if (config?.autoModEnabled) {
-    const badWords = ['chửi_thề_1', 'chửi_thề_2', 'dm', 'vcl']; 
-    const hasBadWord = badWords.some(word => message.content.toLowerCase().includes(word));
-
-    if (hasBadWord) {
-      await message.delete().catch(() => {});
-      const warningMsg = await message.channel.send(`⚖️ **[Shiki-Eiki Yamaxanadu Phán Quyết]**: Ngôn từ của <@${message.author.id}> vi phạm chuẩn mực!`);
-      setTimeout(() => warningMsg.delete().catch(() => {}), 5000);
-
-      if (config.modLogChannel) {
-        const logChannel = message.guild.channels.cache.get(config.modLogChannel);
-        if (logChannel) {
-          logChannel.send(`🛡️ **AutoMod Log**: Đã xóa tin nhắn vi phạm từ **${message.author.tag}** tại <#${message.channel.id}>.`);
-        }
-      }
-      return;
-    }
-  }
-  */
-
-  // --- 1. XỬ LÝ LỆNH PREFIX ---
+  // Lệnh Prefix
   if (message.content.startsWith(currentPrefix)) {
     const args = message.content.slice(currentPrefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
@@ -91,29 +123,28 @@ client.on('messageCreate', async (message) => {
     if (command === 'ping') {
       await message.reply(`🏓 Pong! Độ trễ phán quyết: ${client.ws.ping}ms. Prefix hiện tại: \`${currentPrefix}\``);
     }
-    return; // Dừng ngay lập tức sau khi xử lý bất kỳ lệnh Prefix nào
+    return;
   }
 
-  // --- 2. XỬ LÝ TRÒ CHUYỆN TỰ ĐỘNG (NO-PREFIX) ---
+  // Auto-responder No-Prefix
   const content = message.content.toLowerCase().trim();
 
   if (content === 'ping') {
     await message.reply(`📓 Pong! Trật tự ổn định. (Prefix: \`${currentPrefix}\`)`);
-    return; // Ngắt luồng hoàn toàn
+    return;
   }
 
   if (content.includes('judge') || content.includes('hello') || content.includes('584')) {
     await message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu nhắc nhở nè: Nhớ tích đức hành thiện!`);
-    return; // Ngắt luồng hoàn toàn
+    return;
   }
 
   if (content.includes('shiki đâu') || content.includes('yamaxanadu đâu')) {
     await message.reply('Shiki-Eiki Yamaxanadu luôn ở đây để phân định đúng sai cho máy chủ.');
-    return; // Ngắt luồng hoàn toàn
+    return;
   }
 
-  // --- 3. TTS IN VOICE CHANNEL ---
-  // Chỉ chạy khi tin nhắn KHÔNG phải lệnh prefix VÀ KHÔNG khớp câu trả lời tự động ở trên
+  // TTS in Voice Channel
   const activeVoice = voiceConnections.get(message.guild.id);
   if (activeVoice && activeVoice.textChannelId === message.channel.id) {
     if (message.content.length < 200) {
@@ -141,7 +172,6 @@ client.on('interactionCreate', async (interaction) => {
 
   const { commandName, options, guildId, member, guild } = interaction;
 
-  // Đồng bộ User
   let userData = await prisma.user.findUnique({ where: { id: interaction.user.id } });
   if (!userData) {
     userData = await prisma.user.create({ data: { id: interaction.user.id } });
@@ -150,7 +180,7 @@ client.on('interactionCreate', async (interaction) => {
   let config = await prisma.guildConfig.findUnique({ where: { guildId: 'default' } });
   const currency = config?.currencySymbol || 'Âm Phủ Nhuận';
 
-  // ---------------- LỆNH MODERATION ----------------
+  // Moderation
   if (commandName === 'ban') {
     const target = options.getUser('target');
     const reason = options.getString('reason') || 'Tội danh không được miễn trừ';
@@ -179,7 +209,7 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply({ content: `🧹 **Shiki-Eiki Yamaxanadu**: Đã quét sạch **${amount}** tin nhắn rác.`, ephemeral: true });
   }
 
-  // ---------------- LỆNH THOẠI & TTS ----------------
+  // Voice & TTS
   if (commandName === 'join') {
     const voiceChannel = member.voice.channel;
     if (!voiceChannel) return interaction.reply({ content: 'Hãy tham gia một Kênh thoại trước!', ephemeral: true });
@@ -206,7 +236,7 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply('🔇 **Shiki-Eiki Yamaxanadu**: Đã rời kênh thoại.');
   }
 
-  // ---------------- LỆNH PHÁT NHẠC (SPOTIFY / YOUTUBE) ----------------
+  // Music
   if (commandName === 'play') {
     await interaction.deferReply();
     const query = options.getString('query');
@@ -221,25 +251,12 @@ client.on('interactionCreate', async (interaction) => {
       const playType = await play.validate(query);
 
       if (playType && playType.startsWith('sp')) {
-        if (play.is_expired()) {
-          await play.refreshToken();
-        }
-
         let spotifyData = await play.spotify(query);
-        
         if (playType === 'sp_track') {
           const searched = await play.search(`${spotifyData.name} ${spotifyData.artists[0].name}`, { limit: 1 });
           if (!searched.length) return interaction.editReply('Không tìm thấy bản audio tương ứng trên YouTube.');
-          
           stream = await play.stream(searched[0].url);
           title = `[Spotify] ${spotifyData.name} - ${spotifyData.artists[0].name}`;
-        } else if (playType === 'sp_playlist' || playType === 'sp_album') {
-          const tracks = await spotifyData.all_tracks();
-          const firstTrack = tracks[0];
-          const searched = await play.search(`${firstTrack.name} ${firstTrack.artists[0].name}`, { limit: 1 });
-          
-          stream = await play.stream(searched[0].url);
-          title = `[Spotify Playlist] ${firstTrack.name} (Tất cả ${tracks.length} bài đã thêm vào danh sách)`;
         }
       } else {
         const ytInfo = await play.search(query, { limit: 1 });
@@ -264,8 +281,8 @@ client.on('interactionCreate', async (interaction) => {
 
       return interaction.editReply(`🎵 **Shiki-Eiki Yamaxanadu**: Đang phát **${title}**`);
     } catch (err) {
-      console.error(err);
-      return interaction.editReply('Gặp lỗi khi xử lý bài hát Spotify/YouTube.');
+      console.error("LỖI CHI TIẾT LỆNH PLAY:", err);
+      return interaction.editReply(`Gặp lỗi khi xử lý bài hát: \`${err.message}\``);
     }
   }
 
@@ -280,7 +297,7 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply('🎶 **Shiki-Eiki Yamaxanadu**: Đã ngừng nhạc và ngắt kết nối.');
   }
 
-  // ---------------- LỆNH QUẢN LÝ TIỀN TỆ (CASH & BANK) ----------------
+  // Currency & Economy
   if (commandName === 'balance') {
     const total = userData.cash + userData.bank;
     return interaction.reply(
@@ -337,7 +354,7 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply(`🎁 Ban thưởng **500 ${currency}** (Cash). Tiền mặt hiện tại: **${userData.cash + 500} ${currency}**.`);
   }
 
-  // ---------------- LỆNH GAMBLING (YÊU CẦU DÙNG CASH) ----------------
+  // Gambling
   if (commandName === 'coinflip') {
     const choice = options.getString('choice');
     const amount = options.getInteger('amount');
@@ -395,37 +412,6 @@ client.on('interactionCreate', async (interaction) => {
       (winMultiplier > 0 ? `✨ Trúng thưởng! Nhận **+${netChange} ${currency}** Cash (x${winMultiplier})!` : `💸 Mất **-${amount} ${currency}** Cash.`) +
       `\n💵 Cash hiện tại: **${userData.cash + netChange} ${currency}**`
     );
-  }
-
-  // ---------------- MINIGAME ----------------
-  if (commandName === 'oan-tu-xi') {
-    const userChoice = options.getString('choice');
-    const choices = ['keo', 'bua', 'bao'];
-    const botChoice = choices[Math.floor(Math.random() * choices.length)];
-
-    let res = 'Hòa!';
-    if (
-      (userChoice === 'keo' && botChoice === 'bao') ||
-      (userChoice === 'bua' && botChoice === 'keo') ||
-      (userChoice === 'bao' && botChoice === 'bua')
-    ) {
-      res = 'Bạn chiến thắng!';
-    } else if (userChoice !== botChoice) {
-      res = 'Shiki-Eiki Yamaxanadu chiến thắng!';
-    }
-
-    return interaction.reply(`🎮 Bạn ra **${userChoice}** | Shiki-Eiki Yamaxanadu ra **${botChoice}**\n👉 Kết quả: **${res}**`);
-  }
-
-  if (commandName === 'doan-so') {
-    const guessedNumber = options.getInteger('number');
-    const targetNumber = Math.floor(Math.random() * 10) + 1;
-
-    if (guessedNumber === targetNumber) {
-      return interaction.reply(`🎯 **Shiki-Eiki Yamaxanadu**: Chuẩn xác! Con số bí mật chính là **${targetNumber}**.`);
-    } else {
-      return interaction.reply(`❌ **Shiki-Eiki Yamaxanadu**: Sai rồi! Con số định mệnh là **${targetNumber}**, không phải **${guessedNumber}**.`);
-    }
   }
 });
 

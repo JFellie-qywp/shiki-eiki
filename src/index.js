@@ -101,7 +101,7 @@ client.on('messageCreate', async (message) => {
     return message.reply(`📓 Pong! Trật tự ổn định. (Prefix: \`${currentPrefix}\`)`);
   } else if (content.includes('judge') || content.includes('hello') || content.includes('584')) {
     return message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu nhắc nhở nè: Nhớ tích đức hành thiện!`);
-  } else if (content.includes('shiki-eiki đâu') || content.includes('yamaxanadu đâu')) {
+  } else if (content.includes('shiki đâu') || content.includes('yamaxanadu đâu')) {
     return message.reply('Shiki-Eiki Yamaxanadu luôn ở đây để phân định đúng sai cho máy chủ.');
   }
 

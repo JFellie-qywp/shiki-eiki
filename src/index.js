@@ -55,6 +55,7 @@ client.once('ready', () => {
 // 1. AUTO-RESPONDER & TTS & AUTOMOD
 // ==========================================
 client.on('messageCreate', async (message) => {
+  // Bỏ qua tin nhắn từ Bot hoặc tin nhắn riêng (DM)
   if (message.author.bot || !message.guild) return;
 
   let config = await prisma.guildConfig.findUnique({ where: { guildId: 'default' } });
@@ -82,10 +83,32 @@ client.on('messageCreate', async (message) => {
   }
   */
 
-  // --- TTS IN VOICE CHANNEL ---
+  // --- XỬ LÝ LỆNH PREFIX ---
+  if (message.content.startsWith(currentPrefix)) {
+    const args = message.content.slice(currentPrefix.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    if (command === 'ping') {
+      await message.reply(`🏓 Pong! Độ trễ phán quyết: ${client.ws.ping}ms. Prefix hiện tại: \`${currentPrefix}\``);
+    }
+    return; // Dừng ngay lập tức sau khi xử lý bất kỳ lệnh Prefix nào
+  }
+
+  // --- XỬ LÝ TRÒ CHUYỆN TỰ ĐỘNG (NO-PREFIX) ---
+  const content = message.content.toLowerCase().trim();
+
+  if (content === 'ping') {
+    return message.reply(`📓 Pong! Trật tự ổn định. (Prefix: \`${currentPrefix}\`)`);
+  } else if (content.includes('judge') || content.includes('hello') || content.includes('584')) {
+    return message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu nhắc nhở nè: Nhớ tích đức hành thiện!`);
+  } else if (content.includes('shiki-eiki đâu') || content.includes('yamaxanadu đâu')) {
+    return message.reply('Shiki-Eiki Yamaxanadu luôn ở đây để phân định đúng sai cho máy chủ.');
+  }
+
+  // --- TTS IN VOICE CHANNEL (Chỉ chạy khi không dính các câu thoại tự động ở trên) ---
   const activeVoice = voiceConnections.get(message.guild.id);
   if (activeVoice && activeVoice.textChannelId === message.channel.id) {
-    if (!message.content.startsWith(currentPrefix) && message.content.length < 200) {
+    if (message.content.length < 200) {
       const textToRead = `${message.author.username} nói: ${message.content}`;
       try {
         const ttsUrl = googleTTS.getAudioUrl(textToRead, {
@@ -99,33 +122,6 @@ client.on('messageCreate', async (message) => {
         console.error('Lỗi TTS:', err);
       }
     }
-  }
-
-  // --- AUTO RESPONDER & PREFIX ---
-  // Xử lý lệnh Prefix
-  if (message.content.startsWith(currentPrefix)) {
-    const args = message.content.slice(currentPrefix.length).trim().split(/ +/);
-    const command = args.shift().toLowerCase();
-
-    if (command === 'ping') {
-      return message.reply(`🏓 Pong! Độ trễ phán quyết: ${client.ws.ping}ms. Prefix hiện tại: \`${currentPrefix}\``);
-    }
-    return; // Đảm bảo dừng lại sau khi xử lý lệnh prefix
-  }
-
-  // Xử lý trò chuyện tự động (Không dùng Prefix)
-  const content = message.content.toLowerCase().trim();
-
-  if (content === 'ping') {
-    return message.reply(`📓 Pong! Trật tự ổn định. (Prefix: \`${currentPrefix}\`)`);
-  }
-
-  if (content.includes('judge') || content.includes('hello') || content.includes('584')) {
-    return message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu nhắc nhở nè: Nhớ tích đức hành thiện!`);
-  }
-
-  if (content.includes('shiki đâu') || content.includes('yamaxanadu đâu')) {
-    return message.reply('Shiki-Eiki Yamaxanadu luôn ở đây để phân định đúng sai cho máy chủ.');
   }
 });
 

@@ -1,0 +1,24 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id
+  cash      Int      @default(1000) // Tiền mặt (dùng để chơi Gambling)
+  bank      Int      @default(0)    // Tiền trong ngân hàng (an toàn, không bị mất)
+  lastDaily DateTime @default(now())
+}
+
+model GuildConfig {
+  guildId        String   @id
+  prefix         String   @default("!")
+  modLogChannel  String?
+  autoModEnabled Boolean  @default(true)
+  currencySymbol String   @default("Âm Phủ Nhuận")
+  updatedAt      DateTime @updatedAt
+}

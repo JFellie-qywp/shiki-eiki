@@ -3,8 +3,26 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@d
 const { PrismaClient } = require('@prisma/client');
 const play = require('play-dl');
 const googleTTS = require('google-tts-api');
+const express = require('express'); // 1. Khai báo Express cho Render Port Binding
 require('dotenv').config();
 
+// ==========================================
+// KHỞI TẠO WEB SERVER (SỬA LỖI PORT RENDER)
+// ==========================================
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('⚖️ Shiki-Eiki Yamaxanadu Bot & Dashboard is Online!');
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Web server đang lắng nghe trên port: ${PORT}`);
+});
+
+// ==========================================
+// KHỞI TẠO DISCORD CLIENT & PRISMA
+// ==========================================
 const prisma = new PrismaClient();
 const client = new Client({
   intents: [
@@ -42,7 +60,8 @@ client.on('messageCreate', async (message) => {
   let config = await prisma.guildConfig.findUnique({ where: { guildId: 'default' } });
   const currentPrefix = config?.prefix || '!';
 
-  // --- AUTOMODERATION ---
+  // --- AUTOMODERATION (ĐÃ TẮT THEO YÊU CẦU) ---
+  /*
   if (config?.autoModEnabled) {
     const badWords = ['chửi_thề_1', 'chửi_thề_2', 'dm', 'vcl']; 
     const hasBadWord = badWords.some(word => message.content.toLowerCase().includes(word));
@@ -61,6 +80,7 @@ client.on('messageCreate', async (message) => {
       return;
     }
   }
+  */
 
   // --- TTS IN VOICE CHANNEL ---
   const activeVoice = voiceConnections.get(message.guild.id);

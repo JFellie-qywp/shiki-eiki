@@ -3,11 +3,11 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@d
 const { PrismaClient } = require('@prisma/client');
 const play = require('play-dl');
 const googleTTS = require('google-tts-api');
-const express = require('express'); // 1. Khai báo Express cho Render Port Binding
+const express = require('express');
 require('dotenv').config();
 
 // ==========================================
-// KHỞI TẠO WEB SERVER (SỬA LỖI PORT RENDER)
+// KHỞI TẠO WEB SERVER (PORT BINDING CHO RENDER)
 // ==========================================
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,6 +102,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // --- AUTO RESPONDER & PREFIX ---
+  // Xử lý lệnh Prefix
   if (message.content.startsWith(currentPrefix)) {
     const args = message.content.slice(currentPrefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
@@ -109,15 +110,18 @@ client.on('messageCreate', async (message) => {
     if (command === 'ping') {
       return message.reply(`🏓 Pong! Độ trễ phán quyết: ${client.ws.ping}ms. Prefix hiện tại: \`${currentPrefix}\``);
     }
+    return; // Đảm bảo dừng lại sau khi xử lý lệnh prefix
   }
 
-  const content = message.content.toLowerCase();
-  if (content === 'ping' && !message.content.startsWith(currentPrefix)) {
+  // Xử lý trò chuyện tự động (Không dùng Prefix)
+  const content = message.content.toLowerCase().trim();
+
+  if (content === 'ping') {
     return message.reply(`📓 Pong! Trật tự ổn định. (Prefix: \`${currentPrefix}\`)`);
   }
 
-  if (content.includes('hello') || content.includes('chào') || content.includes('shiki')) {
-    return message.reply(`Chào ${message.author}. Shiki-Eiki Yamaxanadu nhắc bạn: Nhớ tích đức hành thiện!`);
+  if (content.includes('judge') || content.includes('hello') || content.includes('584')) {
+    return message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu nhắc nhở nè: Nhớ tích đức hành thiện!`);
   }
 
   if (content.includes('shiki đâu') || content.includes('yamaxanadu đâu')) {

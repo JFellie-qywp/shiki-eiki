@@ -83,7 +83,7 @@ client.on('messageCreate', async (message) => {
   }
   */
 
-  // --- XỬ LÝ LỆNH PREFIX ---
+  // --- 1. XỬ LÝ LỆNH PREFIX ---
   if (message.content.startsWith(currentPrefix)) {
     const args = message.content.slice(currentPrefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
@@ -94,18 +94,26 @@ client.on('messageCreate', async (message) => {
     return; // Dừng ngay lập tức sau khi xử lý bất kỳ lệnh Prefix nào
   }
 
-  // --- XỬ LÝ TRÒ CHUYỆN TỰ ĐỘNG (NO-PREFIX) ---
+  // --- 2. XỬ LÝ TRÒ CHUYỆN TỰ ĐỘNG (NO-PREFIX) ---
   const content = message.content.toLowerCase().trim();
 
   if (content === 'ping') {
-    return message.reply(`📓 Pong! Trật tự ổn định. (Prefix: \`${currentPrefix}\`)`);
-  } else if (content.includes('judge') || content.includes('hello') || content.includes('584')) {
-    return message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu nhắc nhở nè: Nhớ tích đức hành thiện!`);
-  } else if (content.includes('shiki đâu') || content.includes('yamaxanadu đâu')) {
-    return message.reply('Shiki-Eiki Yamaxanadu luôn ở đây để phân định đúng sai cho máy chủ.');
+    await message.reply(`📓 Pong! Trật tự ổn định. (Prefix: \`${currentPrefix}\`)`);
+    return; // Ngắt luồng hoàn toàn
   }
 
-  // --- TTS IN VOICE CHANNEL (Chỉ chạy khi không dính các câu thoại tự động ở trên) ---
+  if (content.includes('judge') || content.includes('hello') || content.includes('584')) {
+    await message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu nhắc nhở nè: Nhớ tích đức hành thiện!`);
+    return; // Ngắt luồng hoàn toàn
+  }
+
+  if (content.includes('shiki đâu') || content.includes('yamaxanadu đâu')) {
+    await message.reply('Shiki-Eiki Yamaxanadu luôn ở đây để phân định đúng sai cho máy chủ.');
+    return; // Ngắt luồng hoàn toàn
+  }
+
+  // --- 3. TTS IN VOICE CHANNEL ---
+  // Chỉ chạy khi tin nhắn KHÔNG phải lệnh prefix VÀ KHÔNG khớp câu trả lời tự động ở trên
   const activeVoice = voiceConnections.get(message.guild.id);
   if (activeVoice && activeVoice.textChannelId === message.channel.id) {
     if (message.content.length < 200) {

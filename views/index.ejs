@@ -12,7 +12,7 @@
       --primary: #1ab394;
       --primary-light: #e6f7f4;
       --accent: #2bbd9e;
-      --bg-card: rgba(255, 255, 255, 0.92);
+      --bg-card: rgba(255, 255, 255, 0.95);
       --text-main: #2c3e50;
     }
 
@@ -37,8 +37,8 @@
       background: var(--bg-card);
       backdrop-filter: blur(10px);
       border-radius: 24px;
-      padding: 40px 30px;
-      max-width: 480px;
+      padding: 35px 30px;
+      max-width: 500px;
       width: 100%;
       box-shadow: 0 20px 40px rgba(22, 160, 133, 0.25);
       border: 3px solid #ffffff;
@@ -47,9 +47,9 @@
 
     .avatar-wrapper {
       position: relative;
-      width: 130px;
-      height: 130px;
-      margin: 0 auto 20px;
+      width: 110px;
+      height: 110px;
+      margin: 0 auto 15px;
     }
 
     .avatar {
@@ -65,8 +65,8 @@
       position: absolute;
       bottom: 5px;
       right: 5px;
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       background-color: #2ecc71;
       border: 3px solid #ffffff;
       border-radius: 50%;
@@ -76,70 +76,173 @@
       font-family: 'Comfortaa', cursive;
       font-size: 22px;
       color: #16a085;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       font-weight: 700;
     }
 
     .subtitle {
-      font-size: 14px;
+      font-size: 13px;
       color: #7f8c8d;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      padding: 10px 15px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      border: 1px solid #c3e6cb;
     }
 
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      margin-bottom: 25px;
+      gap: 12px;
+      margin-bottom: 20px;
     }
 
     .stat-card {
       background: var(--primary-light);
-      padding: 15px;
+      padding: 12px;
       border-radius: 16px;
       border: 1px solid #b2ece1;
     }
 
     .stat-card .number {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       color: var(--primary);
     }
 
     .stat-card .label {
-      font-size: 12px;
+      font-size: 11px;
       color: #566573;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
-    .quote-box {
+    /* KHUNG KHU VỰC CÀI ĐẶT PREFIX */
+    .settings-box {
       background: #ffffff;
-      border-left: 4px solid var(--primary);
-      padding: 12px 16px;
-      border-radius: 8px;
+      border: 2px solid #b2ece1;
+      border-radius: 18px;
+      padding: 20px;
+      text-align: left;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    }
+
+    .settings-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #16a085;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
       font-size: 13px;
-      font-style: italic;
-      color: #4a6572;
-      margin-bottom: 25px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      font-weight: 700;
+      color: #34495e;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e0f2f1;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .checkbox-group input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .btn-save {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #1ab394, #16a085);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(26, 179, 148, 0.3);
+      transition: transform 0.2s;
+    }
+
+    .btn-save:hover {
+      transform: translateY(-2px);
+    }
+
+    /* STYLE NÚT ĐIỀU HƯỚNG TỚI TOS VÀ PRIVACY */
+    .policy-links {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn-policy {
+      flex: 1;
+      padding: 10px;
+      background: #e6f7f4;
+      color: #16a085;
+      text-decoration: none;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid #b2ece1;
+      text-align: center;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .btn-policy:hover {
+      background: #d4f3ed;
+      transform: translateY(-1px);
     }
 
     .btn-invite {
       display: inline-block;
       width: 100%;
-      padding: 14px 0;
-      background: linear-gradient(135deg, #1ab394, #16a085);
-      color: white;
+      padding: 12px 0;
+      background: #ffffff;
+      color: var(--primary);
       text-decoration: none;
       font-weight: 700;
-      border-radius: 14px;
-      font-size: 15px;
-      box-shadow: 0 8px 15px rgba(26, 179, 148, 0.3);
-      transition: transform 0.2s;
+      border-radius: 12px;
+      font-size: 13px;
+      border: 2px solid var(--primary);
+      transition: background 0.2s;
     }
 
     .btn-invite:hover {
-      transform: translateY(-2px);
+      background: var(--primary-light);
     }
   </style>
 </head>
@@ -151,12 +254,14 @@
     </div>
 
     <h1>Shiki-Eiki Yamaxanadu</h1>
-    <p class="subtitle">⚖️ Vị Thẩm Phán Cao Quý Của Luân Hồi</p>
+    <p class="subtitle">⚖️ Phán Quan Tối Cao Của Hỉ Ngạn</p>
 
-    <div class="quote-box">
-      "Tích đức hành thiện, phán quyết minh bạch!"
-    </div>
+    <!-- Thông báo nếu vừa lưu thành công -->
+    <% if (message) { %>
+      <div class="alert-success">🌸 <%= message %></div>
+    <% } %>
 
+    <!-- Thống kê hệ thống -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="number"><%= serverCount %></div>
@@ -166,6 +271,31 @@
         <div class="number"><%= pingMs %></div>
         <div class="label">Độ Trễ</div>
       </div>
+    </div>
+
+    <!-- Khung Form Cài Đặt Prefix -->
+    <form action="/save-settings" method="POST" class="settings-box">
+      <div class="settings-title">⚙️ Cấu Hình Sắc Lệnh Server</div>
+
+      <div class="form-group">
+        <label for="prefix">Tiền tố lệnh (Prefix):</label>
+        <input type="text" id="prefix" name="prefix" class="form-input" value="<%= config ? config.prefix : '!' %>" required placeholder="Nhập prefix (ví dụ: !, ?, s!)">
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-group">
+          <input type="checkbox" name="autoModEnabled" <%= config && config.autoModEnabled ? 'checked' : '' %>>
+          <span>Bật tính năng Phán Quyết Tự Động (AutoMod)</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn-save">💾 Áp Dụng Cài Đặt</button>
+    </form>
+
+    <!-- Nút liên kết Điều Khoản và Bảo Mật -->
+    <div class="policy-links">
+      <a href="/shikieikiyamaxanadu584/terms" class="btn-policy">📜 Điều Khoản (ToS)</a>
+      <a href="/shikieikiyamaxanadu584/privacy" class="btn-policy">🔒 Bảo Mật (Privacy)</a>
     </div>
 
     <a href="https://discord.com/api/oauth2/authorize?client_id=<%= clientId %>&permissions=8&scope=bot%20applications.commands" class="btn-invite" target="_blank">

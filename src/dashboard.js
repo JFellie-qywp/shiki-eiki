@@ -6,18 +6,29 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Đọc dữ liệu gửi lên từ Form (POST request)
+// Middleware đọc dữ liệu Form
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// SỬA LỖI ĐƯỜNG DẪN: Chỉ định chính xác thư mục views nằm ở ngoài thư mục gốc cgeck/views
+// Phục vụ các file tĩnh từ thư mục public (chứa avatar.jpg)
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Cấu hình thư mục views chứa file index.ejs
 app.set('views', path.join(__dirname, '../views'));
 app.set('view engine', 'ejs');
 
 const DEFAULT_GUILD_ID = 'default';
 
-// Điều hướng trang chủ Dashboard Phán Quyết
-app.get('/', async (req, res) => {
+// Đường dẫn static avatar nội bộ từ thư mục public
+const SHIKI_AVATAR = "/avatar.jpg";
+
+// Tự động chuyển hướng từ trang chủ về đường dẫn tùy chỉnh
+app.get('/', (req, res) => {
+  res.redirect('/shikieikiyamaxanadu584');
+});
+
+// Route Trang chủ Dashboard
+app.get('/shikieikiyamaxanadu584', async (req, res) => {
   try {
     let config = await prisma.guildConfig.findUnique({
       where: { guildId: DEFAULT_GUILD_ID }
@@ -43,14 +54,32 @@ app.get('/', async (req, res) => {
       users: 1450
     };
 
-    res.render('index', { stats, config, message: null });
+    res.render('index', { 
+      stats, 
+      config, 
+      message: null,
+      serverCount: stats.guilds,
+      pingMs: `${stats.ping} ms`,
+      clientId: process.env.CLIENT_ID || '',
+      avatarUrl: SHIKI_AVATAR
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send('Lỗi kết nối cơ sở dữ liệu Tòa Án Hỉ Ngạn!');
   }
 });
 
-// Xử lý lưu cài đặt (Prefix, Moderation) từ Form
+// Route hiển thị trang Điều Khoản Dịch Vụ (TOS)
+app.get('/shikieikiyamaxanadu584/terms', (req, res) => {
+  res.render('tos');
+});
+
+// Route hiển thị trang Chính Sách Bảo Mật (Privacy Policy)
+app.get('/shikieikiyamaxanadu584/privacy', (req, res) => {
+  res.render('privacy');
+});
+
+// Route lưu cấu hình
 app.post('/save-settings', async (req, res) => {
   try {
     const { prefix, autoModEnabled, modLogChannel } = req.body;
@@ -83,7 +112,11 @@ app.post('/save-settings', async (req, res) => {
     res.render('index', { 
       stats, 
       config: updatedConfig, 
-      message: 'Sắc lệnh cấu hình đã được áp dụng thành công!' 
+      message: 'Sắc lệnh cấu hình đã được áp dụng thành công!',
+      serverCount: stats.guilds,
+      pingMs: `${stats.ping} ms`,
+      clientId: process.env.CLIENT_ID || '',
+      avatarUrl: SHIKI_AVATAR
     });
   } catch (error) {
     console.error(error);
@@ -92,5 +125,5 @@ app.post('/save-settings', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[Shiki-Eiki Dashboard] Đã bật bảng điều khiển tại http://localhost:${PORT}`);
+  console.log(`[Shiki-Eiki Dashboard] Đã bật bảng điều khiển tại http://localhost:${PORT}/shikieikiyamaxanadu584`);
 });

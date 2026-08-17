@@ -1,8 +1,9 @@
 const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const { PrismaClient } = require('@prisma/client');
 const play = require('play-dl');
 const googleTTS = require('google-tts-api');
+const ffmpeg = require('ffmpeg-static');
 const express = require('express');
 require('dotenv').config();
 
@@ -56,8 +57,8 @@ const voiceConnections = new Map();
 // DANH SÁCH SLASH COMMANDS ĐỂ ĐĂNG KÝ VỚI DISCORD
 // ==========================================
 const commands = [
-  new SlashCommandBuilder().setName('join').setDescription('Đưa bot vào kênh thoại để dùng TTS'),
-  new SlashCommandBuilder().setName('leave').setDescription('Rời khỏi kênh thoại'),
+  new SlashCommandBuilder().setName('join').setDescription('Đưa shiki-eiki vào kênh thoại để dùng TTS'),
+  new SlashCommandBuilder().setName('leave').setDescription('Shiki-eiki Rời khỏi kênh thoại'),
   new SlashCommandBuilder().setName('play').setDescription('Phát nhạc từ Spotify hoặc YouTube')
     .addStringOption(opt => opt.setName('query').setDescription('Tên bài hát hoặc URL').setRequired(true)),
   new SlashCommandBuilder().setName('stop').setDescription('Dừng nhạc và rời kênh thoại'),
@@ -113,7 +114,7 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
   let config = await prisma.guildConfig.findUnique({ where: { guildId: 'default' } });
-  const currentPrefix = config?.prefix || '!';
+  const currentPrefix = config?.prefix || 's.';
 
   // Lệnh Prefix
   if (message.content.startsWith(currentPrefix)) {
@@ -134,13 +135,18 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  if (content.includes('judge') || content.includes('hello') || content.includes('584')) {
-    await message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu nhắc nhở nè: Nhớ tích đức hành thiện!`);
+  if (content.includes('hi shiki') || content.includes('hello shiki') || content.includes('584')) {
+    await message.reply(`gửi lời đến ${message.author} thân quý. Shiki-Eiki Yamaxanadu gửi lời chào, <3`);
     return;
   }
 
   if (content.includes('shiki đâu') || content.includes('yamaxanadu đâu')) {
-    await message.reply('Shiki-Eiki Yamaxanadu luôn ở đây để phân định đúng sai cho máy chủ.');
+    await message.reply('Shiki-Eiki gửi lời. tôi ở đây sẵn sàng nghe lời thỉnh cầu của bạn');
+    return;
+  }
+
+  if (content.includes('judge') || content.includes('tòa phán cao') || content.includes('tòa phán xử')) {
+    await message.reply('Dear i\'m .584 , phán thẳng xml bị ping ở trên kia bị gay.');
     return;
   }
 
@@ -156,6 +162,12 @@ client.on('messageCreate', async (message) => {
           host: 'https://translate.google.com',
         });
         const resource = createAudioResource(ttsUrl);
+
+        if (!activeVoice.player) {
+          activeVoice.player = createAudioPlayer();
+          activeVoice.connection.subscribe(activeVoice.player);
+        }
+
         activeVoice.player.play(resource);
       } catch (err) {
         console.error('Lỗi TTS:', err);
